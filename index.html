@@ -300,6 +300,74 @@
       filter: drop-shadow(0 5px 15px rgba(74, 144, 226, 0.1));
     }
 
+    /* Interactive map image styling */
+    #world-map img {
+      width: auto;
+      max-width: none;
+      display: block;
+      height: auto;
+      object-fit: cover;
+      transition: transform 0.2s ease-out;
+    }
+
+    #world-map img:active {
+      cursor: grabbing;
+    }
+
+    /* Mobile screens (< 576px) - fit to screen, allow horizontal drag */
+    @media (max-width: 575.98px) {
+      .world-map-container {
+        height: 350px;
+      }
+      #world-map img {
+        height: 100%;
+        width: auto;
+        cursor: grab;
+        transform: translateX(var(--pan-x, 0));
+      }
+      .map-instructions {
+        display: block;
+      }
+    }
+
+    /* Tablets (576px - 991px) - static, centered on Sweden */
+    @media (min-width: 576px) and (max-width: 991.98px) {
+      .world-map-container {
+        height: 400px;
+        justify-content: flex-start;
+      }
+      #world-map img {
+        height: 100%;
+        width: auto;
+      }
+      .map-instructions {
+        display: none;
+      }
+    }
+
+    /* Large screens (992px+) - static, centered on Sweden at top */
+    @media (min-width: 992px) {
+      .world-map-container {
+        height: 500px;
+        justify-content: flex-start;
+      }
+      #world-map img {
+        height: 100%;
+        width: auto;
+      }
+      .map-instructions {
+        display: none;
+      }
+    }
+
+    /* Map instructions */
+    .map-instructions {
+      text-align: center;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-top: 1rem;
+    }
+
     .svg-map .location-label {
       font-size: 12px;
       font-weight: 600;
@@ -496,7 +564,10 @@
       <div class="row justify-content-center">
         <div class="col-lg-12">
           <div id="world-map" class="world-map-container" style="text-align: center; overflow: hidden; max-width: 100%;">
-            <img src="public/world.png" alt="My journey map" style="width: 120%; height: auto; max-width: none; display: block; margin: 0 auto; transform: translateY(80px); margin-left: -10%;">
+            <img src="public/world.png" alt="My journey map" id="map-image">
+          </div>
+          <div class="map-instructions">
+            <small>Drag to explore the map</small>
           </div>
         </div>
       </div>
@@ -561,6 +632,74 @@
       themeIcon.classList.toggle('fa-sun', savedTheme === 'dark');
       themeIcon.classList.toggle('fa-moon', savedTheme === 'light');
     });
+
+    // Mobile-only horizontal dragging
+    let panX = 0;
+    let isDragging = false;
+    let dragStartX = 0;
+    let dragVelocity = 0;
+    const maxPanX = 100;
+
+    function updateMapPosition() {
+      const mapImg = document.getElementById('map-image');
+      if (mapImg && window.innerWidth < 576) {
+        mapImg.style.transform = `translateX(${panX}px)`;
+      }
+    }
+
+    const mapImage = document.getElementById('map-image');
+    if (mapImage) {
+      // Touch events for mobile
+      mapImage.addEventListener('touchstart', (e) => {
+        if (window.innerWidth >= 576) return;
+        isDragging = true;
+        dragStartX = e.touches[0].clientX;
+        dragVelocity = 0;
+      });
+
+      mapImage.addEventListener('touchmove', (e) => {
+        if (!isDragging || window.innerWidth >= 576) return;
+        e.preventDefault();
+        
+        const currentX = e.touches[0].clientX;
+        const diffX = currentX - dragStartX;
+        panX = Math.max(-maxPanX, Math.min(maxPanX, panX + diffX));
+        dragVelocity = diffX;
+        dragStartX = currentX;
+        updateMapPosition();
+      });
+
+      mapImage.addEventListener('touchend', () => {
+        isDragging = false;
+      });
+
+      // Mouse drag for desktop testing of mobile view
+      mapImage.addEventListener('mousedown', (e) => {
+        if (window.innerWidth >= 576) return;
+        isDragging = true;
+        dragStartX = e.clientX;
+        dragVelocity = 0;
+      });
+
+      mapImage.addEventListener('mousemove', (e) => {
+        if (!isDragging || window.innerWidth >= 576) return;
+        
+        const currentX = e.clientX;
+        const diffX = currentX - dragStartX;
+        panX = Math.max(-maxPanX, Math.min(maxPanX, panX + diffX));
+        dragVelocity = diffX;
+        dragStartX = currentX;
+        updateMapPosition();
+      });
+
+      mapImage.addEventListener('mouseup', () => {
+        isDragging = false;
+      });
+
+      mapImage.addEventListener('mouseleave', () => {
+        isDragging = false;
+      });
+    }
   </script>
 
 </body>
